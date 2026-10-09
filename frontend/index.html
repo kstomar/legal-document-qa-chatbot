@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Legal Document Q&A Assistant</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.ico">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Main Top Navigation -->
+    <header class="app-header">
+      <div class="brand-lockup">
+        <button type="button" id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle navigation menu" aria-expanded="false">☰</button>
+        <div class="brand">
+          <span class="brand-icon" aria-hidden="true">§</span>
+          <div class="brand-copy">
+            <h1>Legal Document Q&A</h1>
+          </div>
+        </div>
+      </div>
+      <nav class="top-nav" aria-label="Views">
+        <button type="button" class="top-nav-btn active" id="navChatBtn">Chat</button>
+        <button type="button" class="top-nav-btn" id="navDocsBtn">Documents (<span id="topNavDocCount">0</span>)</button>
+      </nav>
+    </header>
+
+    <div class="main-layout">
+      <!-- Modern AI Chat Sidebar -->
+      <aside class="sidebar" aria-label="Conversations and documents sidebar">
+        <div class="sidebar-top">
+          <button type="button" id="newChatBtn" class="new-chat-action">
+            <span class="btn-icon" aria-hidden="true">+</span>
+            <span>New Chat</span>
+          </button>
+        </div>
+
+        <section class="sidebar-section chats-section" aria-label="Your chats">
+          <div class="sidebar-section-header">
+            <span class="sidebar-section-title">YOUR CHATS</span>
+          </div>
+          <div id="conversationsList" class="conversations-list">
+            <p class="empty-text">No chats yet.</p>
+          </div>
+        </section>
+
+        <section class="sidebar-section documents-nav-section" aria-label="Documents management">
+          <div class="sidebar-section-header">
+            <span class="sidebar-section-title">DOCUMENTS</span>
+          </div>
+          <div class="sidebar-doc-actions">
+            <button type="button" id="uploadOpenBtn" class="sidebar-action-btn">
+              <span class="btn-icon" aria-hidden="true">↑</span>
+              <span>Upload Document</span>
+            </button>
+            <button type="button" id="viewAllDocsBtn" class="sidebar-action-btn secondary">
+              <span class="btn-icon" aria-hidden="true">▤</span>
+              <span>Manage Documents</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="sidebar-section settings-nav-section" aria-label="Application settings">
+          <div class="sidebar-section-header">
+            <span class="sidebar-section-title">SETTINGS</span>
+          </div>
+          <div class="sidebar-settings-actions">
+            <button type="button" id="openSettingsBtn" class="sidebar-action-btn secondary">
+              <span class="btn-icon" aria-hidden="true">⚙</span>
+              <span>Settings</span>
+            </button>
+          </div>
+        </section>
+
+        <footer class="sidebar-footer">
+          <div class="footer-disclaimer">
+            <span>Informational legal reference only. Not formal legal advice.</span>
+          </div>
+        </footer>
+      </aside>
+
+      <button type="button" class="sidebar-backdrop" id="sidebarBackdrop" aria-label="Close sidebar" hidden></button>
+
+      <!-- VIEW 1: Main Chat Workspace -->
+      <main class="chat-section" id="qaWorkspace">
+        <!-- In-Chat Document Context Selector -->
+        <div class="chat-header-bar">
+          <div class="doc-context-control">
+            <span class="context-label">Context:</span>
+            <div class="doc-dropdown-wrapper">
+              <button type="button" id="docSelectorBtn" class="doc-selector-trigger" aria-haspopup="true" aria-expanded="false">
+                <span class="doc-icon" aria-hidden="true">📄</span>
+                <span id="activeDocName" class="selected-doc-label">No document selected</span>
+                <span class="chevron" aria-hidden="true">▾</span>
+              </button>
+              <div id="docSelectorMenu" class="doc-dropdown-menu" hidden>
+                <div class="doc-dropdown-search">
+                  <input type="text" id="docFilterInput" placeholder="Filter documents..." aria-label="Filter documents" />
+                </div>
+                <div class="doc-dropdown-options" id="docDropdownOptions">
+                  <button type="button" class="doc-dropdown-option active" data-doc-id="">
+                    <span class="option-title">No document</span>
+                    <span class="option-desc">General legal inquiry</span>
+                  </button>
+                </div>
+                <div class="doc-dropdown-footer">
+                  <button type="button" id="dropdownUploadBtn" class="link-btn">+ Upload new document</button>
+                </div>
+              </div>
+            </div>
+            <button type="button" id="clearDocContextBtn" class="icon-clear-btn" title="Remove document context" aria-label="Remove document context" hidden>×</button>
+          </div>
+
+          <div class="chat-header-actions">
+            <button type="button" id="viewActiveDocBtn" class="secondary-btn" disabled>View PDF</button>
+          </div>
+        </div>
+
+        <!-- Chat Conversation Messages -->
+        <div class="chat-messages" id="chatMessages" aria-live="polite">
+          <section class="empty-workspace" id="emptyState">
+            <div class="empty-greeting">
+              <h2 id="emptyHeading">New Chat</h2>
+              <p id="emptySubheading">Ask anything or select a document to ask questions about a specific file.</p>
+            </div>
+
+            <div class="empty-doc-card" id="emptyDocCard" hidden>
+              <div class="doc-card-badge">📄 Selected Document</div>
+              <strong id="emptyDocTitle" class="doc-card-title">—</strong>
+              <span id="emptyDocMeta" class="doc-card-meta">—</span>
+            </div>
+
+            <!-- Dynamic Document-Aware Suggested Questions -->
+            <div class="suggested-questions-wrapper" id="suggestedQuestionsWrapper">
+              <span class="suggestions-label">SUGGESTED QUESTIONS</span>
+              <div class="suggested-questions-grid" id="suggestedQuestionsGrid">
+                <!-- Dynamically rendered by app.js -->
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Chat Input Footer -->
+        <div class="chat-input-container">
+          <form id="chatForm">
+            <div class="input-compose">
+              <textarea id="questionInput" placeholder="Ask a legal question or inquiry..." autocomplete="off" rows="2" maxlength="1500" aria-label="Ask a legal question"></textarea>
+              <button type="submit" id="sendBtn" aria-label="Send question">
+                <span>Ask</span>
+              </button>
+            </div>
+          </form>
+          <div class="input-footer">
+            <span class="input-hint" id="inputHint">Press Enter to send, Shift+Enter for new line</span>
+            <span id="charCount">0/1500</span>
+          </div>
+        </div>
+      </main>
+
+      <!-- VIEW 2: Dedicated "Your Documents" Management Screen -->
+      <section class="documents-view" id="documentsView" hidden aria-label="Your Documents">
+        <div class="docs-view-header">
+          <div class="docs-view-title-group">
+            <h2>Your Documents</h2>
+            <p class="subtitle">Upload and manage documents to review clauses and ask questions.</p>
+          </div>
+          <div class="docs-view-actions">
+            <button type="button" id="docsViewUploadBtn" class="primary-btn">
+              <span aria-hidden="true">+</span> Upload Document
+            </button>
+            <button type="button" id="backToChatBtn" class="secondary-btn">
+              ← Back to Chat
+            </button>
+          </div>
+        </div>
+
+        <div class="docs-view-toolbar">
+          <div class="docs-view-filter">
+            <input type="text" id="docsViewSearchInput" placeholder="Search your documents..." aria-label="Search uploaded documents" />
+          </div>
+          <div class="docs-batch-actions">
+            <label class="select-all-label" for="selectAllDocsCheckbox">
+              <input type="checkbox" id="selectAllDocsCheckbox" aria-label="Select all documents" />
+              <span>Select All</span>
+            </label>
+            <span class="selected-count-badge" id="selectedDocsCount">0 selected</span>
+            <button type="button" id="deleteSelectedDocsBtn" class="danger-btn" disabled>
+              Delete Selected
+            </button>
+          </div>
+        </div>
+
+        <div class="documents-grid" id="documentsGrid">
+          <!-- Rendered dynamically by app.js -->
+        </div>
+      </section>
+
+      <!-- In-Chat Source Inspector Drawer (Preserved On-Demand) -->
+      <aside class="source-inspector" id="sourceInspector" hidden aria-label="Source citation inspection" aria-hidden="true">
+        <div class="inspector-header">
+          <div>
+            <span class="inspector-kicker">SOURCE EVIDENCE</span>
+            <h2>Document Excerpt</h2>
+          </div>
+          <button id="sourceInspectorClose" class="icon-btn" type="button" aria-label="Close source excerpt">×</button>
+        </div>
+        <div class="inspector-document">
+          <span class="document-glyph" aria-hidden="true">📄</span>
+          <div>
+            <strong id="sourceDocumentName">Document</strong>
+            <span id="sourceLocation">Citation details</span>
+          </div>
+        </div>
+        <div class="source-excerpt-label">EXCERPT FROM DOCUMENT</div>
+        <blockquote id="sourceExcerpt" class="source-excerpt">Select a citation to inspect its excerpt.</blockquote>
+      </aside>
+    </div>
+
+    <!-- Centralized Toast Notification -->
+    <div id="uploadStatus" class="status-box toast hidden" role="status" aria-live="polite"></div>
+
+    <!-- Standardized Upload Modal -->
+    <dialog class="app-dialog upload-dialog" id="uploadDialog" aria-labelledby="uploadDialogTitle">
+      <div class="dialog-header">
+        <h2 id="uploadDialogTitle">Upload Document</h2>
+        <button type="button" class="icon-btn" id="uploadDialogCloseBtn" aria-label="Close upload dialog">×</button>
+      </div>
+      <div class="dialog-body">
+        <p class="dialog-desc">Upload a PDF or document image (PNG, JPG, WEBP, TIFF) to ask questions about it.</p>
+        <label class="drop-zone" id="dropZone" for="fileInput">
+          <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.webp,.tiff" aria-label="Choose a file to upload" />
+          <span class="upload-icon" aria-hidden="true">↑</span>
+          <strong>Drop your document here</strong>
+          <span>or browse files on your device</span>
+          <small>PDF contracts, agreements, scanned documents, and images</small>
+        </label>
+      </div>
+    </dialog>
+
+    <!-- Standardized PDF Viewer Modal -->
+    <dialog class="app-dialog pdf-modal" id="pdfModal" aria-labelledby="pdfModalTitle">
+      <div class="dialog-header">
+        <h2 id="pdfModalTitle">Document Preview</h2>
+        <button type="button" class="icon-btn" id="pdfModalCloseBtn" aria-label="Close document preview">×</button>
+      </div>
+      <div class="dialog-body pdf-modal-body">
+        <iframe id="pdfFrame" src="about:blank" title="Document Preview"></iframe>
+      </div>
+    </dialog>
+
+    <!-- Standardized Document Switch Modal -->
+    <dialog class="app-dialog confirm-dialog" id="docSwitchDialog" aria-labelledby="docSwitchTitle">
+      <div class="dialog-header">
+        <h2 id="docSwitchTitle">Switch Document?</h2>
+      </div>
+      <div class="dialog-body">
+        <p id="docSwitchDesc">This chat currently discusses <strong id="switchFromDocName">Doc A</strong>. Switching to <strong id="switchToDocName">Doc B</strong> will change the document context.</p>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="secondary-btn" id="switchCancelBtn">Cancel</button>
+        <button type="button" class="secondary-btn" id="switchKeepChatBtn">Switch in Current Chat</button>
+        <button type="button" class="primary-btn" id="switchNewChatBtn">Start New Chat</button>
+      </div>
+    </dialog>
+
+    <!-- Standardized Document Delete Modal -->
+    <dialog class="app-dialog confirm-dialog" id="docDeleteDialog" aria-labelledby="docDeleteTitle">
+      <div class="dialog-header">
+        <h2 id="docDeleteTitle">Delete Document</h2>
+      </div>
+      <div class="dialog-body">
+        <p>Are you sure you want to delete <strong id="deleteDocName">this document</strong>? All associated chat references will be removed.</p>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="secondary-btn" id="deleteDocCancelBtn">Cancel</button>
+        <button type="button" class="danger-btn" id="deleteDocConfirmBtn">Delete</button>
+      </div>
+    </dialog>
+
+    <!-- Batch Document Delete Confirmation Modal -->
+    <dialog class="app-dialog confirm-dialog" id="batchDocDeleteDialog" aria-labelledby="batchDocDeleteTitle">
+      <div class="dialog-header">
+        <h2 id="batchDocDeleteTitle">Delete Selected Documents</h2>
+      </div>
+      <div class="dialog-body">
+        <p>Are you sure you want to delete <strong id="batchDeleteDocCount">0 documents</strong>? All associated chat references will be removed. This action cannot be undone.</p>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="secondary-btn" id="batchDeleteDocCancelBtn">Cancel</button>
+        <button type="button" class="danger-btn" id="batchDeleteDocConfirmBtn">Delete Selected</button>
+      </div>
+    </dialog>
+
+    <!-- Standardized Conversation Delete Modal -->
+    <dialog class="app-dialog confirm-dialog" id="convDeleteDialog" aria-labelledby="convDeleteTitle">
+      <div class="dialog-header">
+        <h2 id="convDeleteTitle">Delete Chat</h2>
+      </div>
+      <div class="dialog-body">
+        <p>Are you sure you want to delete <strong id="deleteConvTitle">this chat</strong>?</p>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="secondary-btn" id="deleteConvCancelBtn">Cancel</button>
+        <button type="button" class="danger-btn" id="deleteConvConfirmBtn">Delete</button>
+      </div>
+    </dialog>
+
+    <!-- Settings Modal -->
+    <dialog class="app-dialog settings-dialog" id="settingsDialog" aria-labelledby="settingsDialogTitle">
+      <div class="dialog-header">
+        <h2 id="settingsDialogTitle">Settings</h2>
+        <button type="button" class="icon-btn" id="settingsDialogCloseBtn" aria-label="Close settings">×</button>
+      </div>
+      <div class="dialog-body settings-dialog-body">
+        <div class="settings-group">
+          <div class="settings-group-header">
+            <h3>Chat Management</h3>
+            <p class="settings-group-desc">Manage saved conversations and chat history.</p>
+          </div>
+          <div class="settings-item danger-item">
+            <div class="settings-item-info">
+              <strong class="settings-item-title">Delete all chats</strong>
+              <span class="settings-item-desc">Permanently remove all chat history and conversation sessions.</span>
+            </div>
+            <button type="button" class="danger-btn" id="deleteAllChatsOpenBtn">Delete All Chats</button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Delete All Chats Confirmation Modal -->
+    <dialog class="app-dialog confirm-dialog" id="deleteAllChatsDialog" aria-labelledby="deleteAllChatsTitle">
+      <div class="dialog-header">
+        <h2 id="deleteAllChatsTitle">Delete All Chats</h2>
+      </div>
+      <div class="dialog-body">
+        <p>Are you sure you want to permanently delete <strong>all conversations</strong>? This action cannot be undone.</p>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="secondary-btn" id="deleteAllChatsCancelBtn">Cancel</button>
+        <button type="button" class="danger-btn" id="deleteAllChatsConfirmBtn">Yes, Delete All Chats</button>
+      </div>
+    </dialog>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
